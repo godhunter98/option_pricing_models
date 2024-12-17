@@ -17,8 +17,8 @@ class OptionPricingModel:
 
         :param spot: Current price of the underlying asset
         :param strike_price: Strike price of the option
-        :param rfr: Risk-free rate (annualized)
-        :param volatility: Volatility of the underlying asset (annualized)
+        :param rfr: Risk-free rate (annualized, as a decimal)
+        :param volatility: Volatility of the underlying asset (annualized, as a decimal)
         :param time_to_expiry: Time to expiry of the option in years
         """
         self.spot = spot
@@ -43,7 +43,7 @@ class OptionPricingModel:
             self.time_to_expiry,
             self.rfr,
         )
-        formula = ((math.log(s / x)) + ((v**2) / 2) * t + (r * t)) / (v * (t**0.5))
+        formula = ((math.log(s / x)) + ((r + (v**2) / 2) * t)) / (v * math.sqrt(t))
         return round(formula, 3)
 
     def d2(self):
@@ -55,7 +55,7 @@ class OptionPricingModel:
 
         :return: Rounded value of d2
         """
-        return round(self.d1() - (self.volatility * (self.time_to_expiry**0.5)), 3)
+        return round(self.d1() - (self.volatility * math.sqrt(self.time_to_expiry)), 3)
 
     def normsd1(self):
         """
@@ -73,14 +73,14 @@ class OptionPricingModel:
         """
         return round(norm.cdf(self.d2()), 3)
 
-    def option_price(self):
+    def call_option_price(self):
         """
-        Calculates the price of the European option using the BSM formula.
+        Calculates the price of a European Call Option using the BSM formula.
 
         Formula for Call Option:
-        Option Price = S * N(d1) - X * exp(-r * T) * N(d2)
+        Call Price = S * N(d1) - X * exp(-r * T) * N(d2)
 
-        :return: Option price
+        :return: Call option price
         """
         return (self.spot * self.normsd1()) - (
             self.strike_price
@@ -88,28 +88,39 @@ class OptionPricingModel:
             * self.normsd2()
         )
 
+    def put_option_price(self):
+        """
+        Calculates the price of a European Put Option using the BSM formula.
+
+        Formula for Put Option:
+        Put Price = X * exp(-r * T) * N(-d2) - S * N(-d1)
+
+        :return: Put option price
+        """
+        # Explicitly calculate N(-d1) and N(-d2)
+        nd1_neg = round(norm.cdf(-self.d1()), 3)
+        nd2_neg = round(norm.cdf(-self.d2()), 3)
+
+        return (
+            self.strike_price * math.exp(-self.rfr * self.time_to_expiry) * nd2_neg
+        ) - (self.spot * nd1_neg)
+
 
 def main():
     """
-    Main function to take user inputs and calculate d1, d2, N(d1), and N(d2)
-    using the OptionPricingModel class.
+    Main function to take user inputs and calculate d1, d2, N(d1), N(d2),
+    and both Call and Put option prices using the OptionPricingModel class.
     """
     # Gather inputs from the user
-    spot = int(input("Where is the spot trading currently? "))
-    strike_price = int(
-        input("Whats the strike price for whom you want to price the option? ")
-    )
-
-    # Convert rates to decimals (e.g., 5% input -> 0.05)
-    rfr = int(input("What is the current RFR? ")) / 100  # Risk-free rate input
-    Volatility = (
-        int(input("What is the current Volatility(VIX)? ")) / 100
-    )  # Volatility input
-    Time_to_expiry = float(input("What is the time do expiry from today (In years)? "))
+    spot = float(input("Where is the spot trading currently? "))
+    strike_price = float(input("What is the strike price for the option? "))
+    rfr = float(input("What is the current risk-free rate (RFR, in %)? ")) / 100
+    volatility = float(input("What is the current volatility (VIX, in %)? ")) / 100
+    time_to_expiry = float(input("What is the time to expiry (in years)? "))
 
     # Initialize the option pricing model
     option_model = OptionPricingModel(
-        spot, strike_price, rfr, Volatility, Time_to_expiry
+        spot, strike_price, rfr, volatility, time_to_expiry
     )
 
     # Display calculated values
@@ -117,6 +128,8 @@ def main():
     print(f"d2: {option_model.d2()}")
     print(f"N(d1): {option_model.normsd1()}")
     print(f"N(d2): {option_model.normsd2()}")
+    print(f"Call Option Price: {option_model.call_option_price()}")
+    print(f"Put Option Price: {option_model.put_option_price()}")
 
 
 # Run the main function if the script is executed directly
