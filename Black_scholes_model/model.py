@@ -1,6 +1,8 @@
 # Import required libraries
 import math  # For mathematical functions like logarithm and exponential
-from scipy.stats import norm  # For cumulative distribution function (CDF) of the normal distribution
+from scipy.stats import (
+    norm,
+)  # For cumulative distribution function (CDF) of the normal distribution
 
 
 class OptionPricingModel:
@@ -81,7 +83,9 @@ class OptionPricingModel:
         :return: Option price
         """
         return (self.spot * self.normsd1()) - (
-            math.exp(-self.rfr * self.time_to_expiry) * self.normsd2()
+            self.strike_price
+            * math.exp(-self.rfr * self.time_to_expiry)
+            * self.normsd2()
         )
 
 
@@ -97,9 +101,7 @@ def main():
     )
 
     # Convert rates to decimals (e.g., 5% input -> 0.05)
-    rfr = (
-        int(input("What is the current RFR? ")) / 100
-    )  # Risk-free rate input
+    rfr = int(input("What is the current RFR? ")) / 100  # Risk-free rate input
     Volatility = (
         int(input("What is the current Volatility(VIX)? ")) / 100
     )  # Volatility input
